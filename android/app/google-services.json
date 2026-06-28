@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "320225809643",
+    "project_id": "chataeron-2ff0f",
+    "storage_bucket": "chataeron-2ff0f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320225809643:android:b336b43c6ca0121ac4daae",
+        "android_client_info": {
+          "package_name": "com.example.chat_aeron"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8BHu_8kX_BFlcidOE-aLQIjKJw2gyehs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
