@@ -1,49 +1,59 @@
 import 'package:chat_aeron/features/auth/domain/usecases/send_otp_usecase.dart';
+import 'package:chat_aeron/features/auth/domain/usecases/verify_otp_usecase.dart';
 import 'package:chat_aeron/features/auth/providers/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Authentication UI state.
+/// ------------------------------------------------------------
+/// Authentication State
+/// ------------------------------------------------------------
 class AuthState {
   final bool isLoading;
   final String? errorMessage;
-  final String? verificationId;
+  final bool isAuthenticated;
 
   const AuthState({
     this.isLoading = false,
     this.errorMessage,
-    this.verificationId,
+    this.isAuthenticated = false,
   });
 
   AuthState copyWith({
     bool? isLoading,
     String? errorMessage,
-    String? verificationId,
+    bool? isAuthenticated,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
-      verificationId: verificationId ?? this.verificationId,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
     );
   }
 }
 
-/// Controls the authentication flow.
+/// ------------------------------------------------------------
+/// Authentication Controller
+/// ------------------------------------------------------------
 class AuthController extends StateNotifier<AuthState> {
   final SendOtpUseCase _sendOtpUseCase;
+  final VerifyOtpUseCase _verifyOtpUseCase;
 
-  AuthController(this._sendOtpUseCase) : super(const AuthState());
+  AuthController(this._sendOtpUseCase, this._verifyOtpUseCase)
+    : super(const AuthState());
 
-  Future<void> signInWithPhone(String phoneNumber) async {
+  /// Sends OTP to the given phone number.
+  Future<void> signInWithPhone({
+    required String phoneNumber,
+    required void Function(String verificationId) onCodeSent,
+  }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     await _sendOtpUseCase(
       phoneNumber: phoneNumber,
 
       codeSent: (verificationId) {
-        state = state.copyWith(
-          isLoading: false,
-          verificationId: verificationId,
-        );
+        state = state.copyWith(isLoading: false);
+
+        onCodeSent(verificationId);
       },
 
       verificationFailed: (message) {
@@ -51,11 +61,32 @@ class AuthController extends StateNotifier<AuthState> {
       },
     );
   }
+
+  /// Verifies the OTP entered by the user.
+  Future<void> verifyOtp({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      await _verifyOtpUseCase(verificationId: verificationId, smsCode: smsCode);
+
+      state = state.copyWith(isLoading: false, isAuthenticated: true);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
 }
 
-/// AuthController Provider
+/// ------------------------------------------------------------
+/// Riverpod Provider
+/// ------------------------------------------------------------
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
   (ref) {
-    return AuthController(ref.read(sendOtpUseCaseProvider));
+    return AuthController(
+      ref.read(sendOtpUseCaseProvider),
+      ref.read(verifyOtpUseCaseProvider),
+    );
   },
 );
