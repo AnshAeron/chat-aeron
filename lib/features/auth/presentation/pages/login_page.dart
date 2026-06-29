@@ -1,6 +1,8 @@
 import 'package:chat_aeron/features/auth/providers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:chat_aeron/routes/app_routes.dart';
 
 /// LoginPage
 ///
@@ -36,19 +38,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     // Listen to authentication state.
     final authState = ref.watch(authControllerProvider);
+    ref.listen(authControllerProvider, (previous, next) {
+      if (next.verificationId != null) {
+        context.go(AppRoutes.otp);
+      }
 
+      if (next.errorMessage != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+      }
+    });
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 16,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 420,
-              ),
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -80,10 +87,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                   const SizedBox(height: 50),
 
-                  Text(
-                    "Phone Number",
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text("Phone Number", style: theme.textTheme.titleMedium),
 
                   const SizedBox(height: 12),
 
@@ -115,13 +119,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ? const SizedBox(
                               height: 22,
                               width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text(
-                              "Continue",
-                            ),
+                          : const Text("Continue"),
                     ),
                   ),
 
@@ -134,9 +134,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       child: Text(
                         authState.errorMessage!,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: theme.colorScheme.error,
-                        ),
+                        style: TextStyle(color: theme.colorScheme.error),
                       ),
                     ),
 
