@@ -17,11 +17,27 @@ class UserEntity {
   /// User's profile picture URL.
   final String? photoUrl;
 
+  /// User's about/status text.
+  final String? about;
+
+  /// Whether the user is currently online.
+  final bool isOnline;
+
+  /// Last time the user was seen online.
+  final DateTime? lastSeen;
+
+  /// When the user account was created.
+  final DateTime? createdAt;
+
   const UserEntity({
     required this.uid,
     required this.phoneNumber,
     this.displayName,
     this.photoUrl,
+    this.about,
+    this.isOnline = false,
+    this.lastSeen,
+    this.createdAt,
   });
 
   UserEntity copyWith({
@@ -29,18 +45,26 @@ class UserEntity {
     String? phoneNumber,
     String? displayName,
     String? photoUrl,
+    String? about,
+    bool? isOnline,
+    DateTime? lastSeen,
+    DateTime? createdAt,
   }) {
     return UserEntity(
       uid: uid ?? this.uid,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
+      about: about ?? this.about,
+      isOnline: isOnline ?? this.isOnline,
+      lastSeen: lastSeen ?? this.lastSeen,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   String toString() {
-    return 'UserEntity(uid: $uid, phoneNumber: $phoneNumber, displayName: $displayName, photoUrl: $photoUrl)';
+    return 'UserEntity(uid: $uid, phoneNumber: $phoneNumber, displayName: $displayName, photoUrl: $photoUrl, about: $about, isOnline: $isOnline)';
   }
 
   @override
@@ -51,12 +75,16 @@ class UserEntity {
           uid == other.uid &&
           phoneNumber == other.phoneNumber &&
           displayName == other.displayName &&
-          photoUrl == other.photoUrl;
+          photoUrl == other.photoUrl &&
+          about == other.about &&
+          isOnline == other.isOnline;
 
   @override
   int get hashCode =>
       uid.hashCode ^
       phoneNumber.hashCode ^
       displayName.hashCode ^
-      photoUrl.hashCode;
+      photoUrl.hashCode ^
+      about.hashCode ^
+      isOnline.hashCode;
 }

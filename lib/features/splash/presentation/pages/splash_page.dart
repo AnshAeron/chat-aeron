@@ -1,5 +1,7 @@
+import 'package:chat_aeron/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../providers/splash_controller.dart';
 
@@ -10,7 +12,7 @@ import '../../providers/splash_controller.dart';
 /// Responsibilities:
 /// - Display ChatAeron branding.
 /// - Trigger app initialization.
-/// - No business logic should live here.
+/// - Navigate to Home or Login based on auth status.
 /// ------------------------------------------------------------
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -25,8 +27,16 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     super.initState();
 
     // Run after the first frame is rendered.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(splashControllerProvider.notifier).initializeApp();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final isAuthenticated = await ref
+          .read(splashControllerProvider.notifier)
+          .initializeApp();
+      if (!mounted) return;
+      if (isAuthenticated) {
+        context.go(AppRoutes.home);
+      } else {
+        context.go(AppRoutes.login);
+      }
     });
   }
 

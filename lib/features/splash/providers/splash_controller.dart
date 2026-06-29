@@ -1,3 +1,4 @@
+import 'package:chat_aeron/features/auth/providers/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ------------------------------------------------------------
@@ -7,12 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Responsibilities:
 /// - Initialize the application.
 /// - Check authentication status.
-/// - Initialize local storage.
-/// - Decide where to navigate.
-///
-/// NOTE:
-/// For now this is only a placeholder.
-/// We will gradually add startup logic in the next steps.
+/// - Return whether the user is authenticated so the UI can navigate.
 /// ------------------------------------------------------------
 
 class SplashController extends Notifier<void> {
@@ -22,12 +18,20 @@ class SplashController extends Notifier<void> {
   }
 
   /// Starts the application initialization.
-  Future<void> initializeApp() async {
-    // TODO:
-    // 1. Initialize Firebase
-    // 2. Open Hive
-    // 3. Check authentication
-    // 4. Navigate to Home/Login
+  ///
+  /// Returns `true` if the user is already authenticated,
+  /// `false` otherwise. The splash page uses this result
+  /// to decide whether to navigate to Home or Login.
+  Future<bool> initializeApp() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    try {
+      final getCurrentUser = ref.read(getCurrentUserUseCaseProvider);
+      final user = await getCurrentUser();
+      return user != null;
+    } catch (_) {
+      return false;
+    }
   }
 }
 

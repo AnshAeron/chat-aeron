@@ -1,4 +1,5 @@
 import 'package:chat_aeron/features/auth/data/datasources/firebase_auth_datasource.dart';
+import 'package:chat_aeron/features/auth/data/datasources/firestore_user_datasource.dart';
 import 'package:chat_aeron/features/auth/data/models/user_model.dart';
 import 'package:chat_aeron/features/auth/domain/entities/user_entity.dart';
 import 'package:chat_aeron/features/auth/domain/repositories/auth_repository.dart';
@@ -14,8 +15,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// - Hide Firebase implementation details from the Domain layer
 class FirebaseAuthRepository implements AuthRepository {
   final FirebaseAuthDataSource _dataSource;
+  final FirestoreUserDataSource _userDataSource;
 
-  FirebaseAuthRepository(this._dataSource);
+  FirebaseAuthRepository(this._dataSource, this._userDataSource);
 
   @override
   Future<void> sendOtp({
@@ -72,7 +74,12 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     }
 
-    return UserModel.fromFirebaseUser(user).toEntity();
+    final userModel = UserModel.fromFirebaseUser(user);
+
+    // Save the user to Firestore after successful OTP verification.
+    await _userDataSource.saveUser(userModel);
+
+    return userModel.toEntity();
   }
 
   @override

@@ -1,10 +1,13 @@
 import 'package:chat_aeron/features/auth/presentation/pages/login_page.dart';
 import 'package:chat_aeron/features/auth/presentation/pages/otp_page.dart';
 import 'package:chat_aeron/features/home/home_page.dart';
+import 'package:chat_aeron/features/profile/presentation/pages/profile_page.dart';
+import 'package:chat_aeron/features/profile/presentation/pages/profile_setup_page.dart';
 import 'package:chat_aeron/features/splash/presentation/pages/splash_page.dart';
 import 'package:chat_aeron/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:chat_aeron/features/contacts/presentation/pages/contacts_pages.dart';
 
 /// ------------------------------------------------------------
 /// App Router
@@ -48,6 +51,23 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.home,
       builder: (context, state) => const HomePage(),
+    ),
+
+    /// Profile Setup Screen (first-time)
+    GoRoute(
+      path: AppRoutes.profileSetup,
+      builder: (context, state) => const ProfileSetupPage(),
+    ),
+
+    /// Profile Screen
+    GoRoute(
+      path: AppRoutes.profile,
+      builder: (context, state) => const ProfilePage(),
+    ),
+    /// Contacts Screen
+    GoRoute(
+      path: AppRoutes.contacts,
+      builder: (context, state) => const ContactsPage(),
     ),
   ],
 

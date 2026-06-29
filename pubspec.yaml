@@ -49,6 +49,8 @@ dependencies:
   firebase_storage: ^13.0.0
   firebase_messaging: ^16.0.0
 
+  # Media
+  image_picker: ^1.1.2
   # Routing
   go_router: ^16.0.0
 

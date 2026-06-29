@@ -1,4 +1,5 @@
 import 'package:chat_aeron/features/auth/domain/entities/user_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Data model representing a user received from Firebase.
@@ -11,6 +12,10 @@ class UserModel extends UserEntity {
     required super.phoneNumber,
     super.displayName,
     super.photoUrl,
+    super.about,
+    super.isOnline,
+    super.lastSeen,
+    super.createdAt,
   });
 
   /// Creates a [UserModel] from a Firebase [User].
@@ -20,6 +25,8 @@ class UserModel extends UserEntity {
       phoneNumber: user.phoneNumber ?? '',
       displayName: user.displayName,
       photoUrl: user.photoURL,
+      isOnline: true,
+      createdAt: DateTime.now(),
     );
   }
 
@@ -30,6 +37,10 @@ class UserModel extends UserEntity {
       phoneNumber: entity.phoneNumber,
       displayName: entity.displayName,
       photoUrl: entity.photoUrl,
+      about: entity.about,
+      isOnline: entity.isOnline,
+      lastSeen: entity.lastSeen,
+      createdAt: entity.createdAt,
     );
   }
 
@@ -40,6 +51,10 @@ class UserModel extends UserEntity {
       phoneNumber: phoneNumber,
       displayName: displayName,
       photoUrl: photoUrl,
+      about: about,
+      isOnline: isOnline,
+      lastSeen: lastSeen,
+      createdAt: createdAt,
     );
   }
 
@@ -50,6 +65,10 @@ class UserModel extends UserEntity {
       'phoneNumber': phoneNumber,
       'displayName': displayName,
       'photoUrl': photoUrl,
+      'about': about,
+      'isOnline': isOnline,
+      'lastSeen': lastSeen != null ? Timestamp.fromDate(lastSeen!) : null,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 
@@ -60,6 +79,14 @@ class UserModel extends UserEntity {
       phoneNumber: map['phoneNumber'] ?? '',
       displayName: map['displayName'],
       photoUrl: map['photoUrl'],
+      about: map['about'],
+      isOnline: map['isOnline'] ?? false,
+      lastSeen: map['lastSeen'] != null
+          ? (map['lastSeen'] as Timestamp).toDate()
+          : null,
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
     );
   }
 }
