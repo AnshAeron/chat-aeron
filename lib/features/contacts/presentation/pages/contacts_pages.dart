@@ -1,37 +1,28 @@
+import 'package:chat_aeron/features/chat/domain/entities/chat_entity.dart';
+import 'package:chat_aeron/features/chat/presentation/pages/chat_page.dart';
+import 'package:chat_aeron/features/chat/providers/chat_providers.dart';
+import 'package:chat_aeron/features/contacts/presentation/providers/contacts_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ContactsPage extends StatefulWidget {
+class ContactsPage extends ConsumerStatefulWidget {
   const ContactsPage({super.key});
 
   @override
-  State<ContactsPage> createState() => _ContactsPageState();
+  ConsumerState<ContactsPage> createState() => _ContactsPageState();
 }
 
-class _ContactsPageState extends State<ContactsPage> {
+class _ContactsPageState extends ConsumerState<ContactsPage> {
   final TextEditingController _searchController = TextEditingController();
-
-  final List<Map<String, String>> _dummyContacts = [
-    {"name": "Aarav Sharma", "phone": "+91 9876543210"},
-    {"name": "Riya Gupta", "phone": "+91 9123456780"},
-    {"name": "Rahul Verma", "phone": "+91 9988776655"},
-    {"name": "Ananya Singh", "phone": "+91 9012345678"},
-  ];
-
-  List<Map<String, String>> _filteredContacts = [];
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
-    _filteredContacts = _dummyContacts;
-
     _searchController.addListener(() {
-      final query = _searchController.text.toLowerCase();
-
       setState(() {
-        _filteredContacts = _dummyContacts.where((contact) {
-          return contact["name"]!.toLowerCase().contains(query) ||
-              contact["phone"]!.toLowerCase().contains(query);
-        }).toList();
+        _query = _searchController.text.trim();
       });
     });
   }
@@ -57,37 +48,95 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 
-  Widget _buildContactTile(Map<String, String> contact) {
-    return ListTile(
-      leading: CircleAvatar(child: Text(contact["name"]![0])),
-      title: Text(contact["name"]!),
-      subtitle: Text(contact["phone"]!),
-      trailing: const Icon(Icons.chat_outlined),
-      onTap: () {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Chat with ${contact["name"]}")));
-      },
+  Future<void> _startChat(String otherUserId, String displayName) async {
+    final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final chatId = await ref
+          .read(chatRepositoryProvider)
+          .getOrCreateChat(currentUserId, otherUserId);
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close loading dialog
+
+      final chat = ChatEntity(
+        chatId: chatId,
+        participants: [currentUserId, otherUserId],
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ChatPage(chat: chat)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to start chat: $e")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final contactsAsync = ref.watch(contactsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text("Contacts"), centerTitle: true),
       body: Column(
         children: [
           _buildSearchBar(),
           Expanded(
-            child: _filteredContacts.isEmpty
-                ? const Center(child: Text("No Contacts Found"))
-                : ListView.separated(
-                    itemCount: _filteredContacts.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      return _buildContactTile(_filteredContacts[index]);
-                    },
-                  ),
+            child: contactsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text("Error: $e")),
+              data: (users) {
+                final filtered = _query.isEmpty
+                    ? users
+                    : users.where((u) {
+                        final name = (u.displayName ?? '').toLowerCase();
+                        final phone = u.phoneNumber.toLowerCase();
+                        final q = _query.toLowerCase();
+                        return name.contains(q) || phone.contains(q);
+                      }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text("No Contacts Found"));
+                }
+
+                return ListView.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final user = filtered[index];
+                    final name = user.displayName?.isNotEmpty == true
+                        ? user.displayName!
+                        : user.phoneNumber;
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: user.photoUrl != null
+                            ? NetworkImage(user.photoUrl!)
+                            : null,
+                        child: user.photoUrl == null
+                            ? Text(name.isNotEmpty ? name[0].toUpperCase() : "?")
+                            : null,
+                      ),
+                      title: Text(name),
+                      subtitle: Text(user.phoneNumber),
+                      trailing: const Icon(Icons.chat_outlined),
+                      onTap: () => _startChat(user.uid, name),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),

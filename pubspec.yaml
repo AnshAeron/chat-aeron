@@ -51,6 +51,7 @@ dependencies:
 
   # Media
   image_picker: ^1.1.2
+  
   # Routing
   go_router: ^16.0.0
 

@@ -1,7 +1,7 @@
-import 'package:chat_aeron/features/auth/domain/usecases/send_otp_usecase.dart';
-import 'package:chat_aeron/features/auth/domain/usecases/verify_otp_usecase.dart';
-import 'package:chat_aeron/features/auth/providers/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:chat_aeron/features/auth/data/datasources/firestore_user_datasource.dart';
+import 'package:chat_aeron/features/auth/data/models/user_model.dart';
 
 /// ------------------------------------------------------------
 /// Authentication State
@@ -31,51 +31,61 @@ class AuthState {
 }
 
 /// ------------------------------------------------------------
-/// Authentication Controller
+/// Authentication Controller (EMAIL LOGIN ONLY)
 /// ------------------------------------------------------------
 class AuthController extends StateNotifier<AuthState> {
-  final SendOtpUseCase _sendOtpUseCase;
-  final VerifyOtpUseCase _verifyOtpUseCase;
+  AuthController() : super(const AuthState());
 
-  AuthController(this._sendOtpUseCase, this._verifyOtpUseCase)
-    : super(const AuthState());
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Sends OTP to the given phone number.
-  Future<void> signInWithPhone({
-    required String phoneNumber,
-    required void Function(String verificationId) onCodeSent,
-  }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-
-    await _sendOtpUseCase(
-      phoneNumber: phoneNumber,
-
-      codeSent: (verificationId) {
-        state = state.copyWith(isLoading: false);
-
-        onCodeSent(verificationId);
-      },
-
-      verificationFailed: (message) {
-        state = state.copyWith(isLoading: false, errorMessage: message);
-      },
-    );
-  }
-
-  /// Verifies the OTP entered by the user.
-  Future<void> verifyOtp({
-    required String verificationId,
-    required String smsCode,
-  }) async {
+  /// LOGIN (Email + Password)
+  Future<void> login({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      await _verifyOtpUseCase(verificationId: verificationId, smsCode: smsCode);
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
 
       state = state.copyWith(isLoading: false, isAuthenticated: true);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
     }
+  }
+
+  /// SIGN UP (Email + Password)
+  Future<void> signUp({required String email, required String password}) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = credential.user;
+      if (user != null) {
+        final userModel = UserModel(
+          uid: user.uid,
+          phoneNumber: user.phoneNumber ?? '',
+          displayName: user.displayName ?? email.split('@')[0],
+          photoUrl: user.photoURL,
+          isOnline: true,
+          createdAt: DateTime.now(),
+        );
+
+        await FirestoreUserDataSource().saveUser(userModel);
+      }
+
+      state = state.copyWith(isLoading: false, isAuthenticated: true);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+    }
+  }
+
+  /// LOGOUT
+  Future<void> logout() async {
+    await _auth.signOut();
+
+    state = state.copyWith(isAuthenticated: false);
   }
 }
 
@@ -84,9 +94,6 @@ class AuthController extends StateNotifier<AuthState> {
 /// ------------------------------------------------------------
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
   (ref) {
-    return AuthController(
-      ref.read(sendOtpUseCaseProvider),
-      ref.read(verifyOtpUseCaseProvider),
-    );
+    return AuthController();
   },
 );

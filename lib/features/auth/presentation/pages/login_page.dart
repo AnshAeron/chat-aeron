@@ -4,18 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// ------------------------------------------------------------
-/// Login Page
-/// ------------------------------------------------------------
-///
-/// Collects user's phone number and requests Firebase
-/// to send an OTP.
-///
-/// Responsibilities:
-/// • Validate phone number
-/// • Trigger Send OTP
-/// • Navigate to OTP screen
-/// ------------------------------------------------------------
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -24,26 +12,28 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final authState = ref.watch(authControllerProvider);
 
-    ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if (previous?.errorMessage != next.errorMessage &&
-          next.errorMessage != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+    // Error listener
+    ref.listen(authControllerProvider, (previous, next) {
+      final error = next.errorMessage;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
       }
     });
 
@@ -51,7 +41,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
@@ -85,16 +75,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                   const SizedBox(height: 48),
 
-                  Text("Phone Number", style: theme.textTheme.titleMedium),
-
-                  const SizedBox(height: 12),
-
+                  // EMAIL
                   TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      prefixText: "+91 ",
-                      hintText: "Enter phone number",
+                      hintText: "Enter email",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // PASSWORD
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: "Enter password",
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -107,22 +105,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       onPressed: authState.isLoading
                           ? null
                           : () async {
-                              final phone =
-                                  "+91${_phoneController.text.trim()}";
+                              final email = _emailController.text.trim();
+                              final password = _passwordController.text.trim();
+
+                              if (email.isEmpty || password.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Enter email & password"),
+                                  ),
+                                );
+                                return;
+                              }
 
                               await ref
                                   .read(authControllerProvider.notifier)
-                                  .signInWithPhone(
-                                    phoneNumber: phone,
-                                    onCodeSent: (verificationId) {
-                                      if (!context.mounted) return;
+                                  .login(email: email, password: password);
 
-                                      context.go(
-                                        AppRoutes.otp,
-                                        extra: verificationId,
-                                      );
-                                    },
-                                  );
+                              // 🔥 FINAL FIX: GO TO HOME
+                              if (context.mounted) {
+                                context.go(AppRoutes.home);
+                              }
                             },
                       child: authState.isLoading
                           ? const SizedBox(
@@ -130,7 +132,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               height: 22,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text("Continue"),
+                          : const Text("Login"),
                     ),
                   ),
 
@@ -142,6 +144,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: theme.colorScheme.error),
                     ),
+
+                  const SizedBox(height: 20),
+
+                  TextButton(
+                    onPressed: () => context.go(AppRoutes.signup),
+                    child: const Text("Don't have an account? Sign Up"),
+                  ),
 
                   const SizedBox(height: 20),
 

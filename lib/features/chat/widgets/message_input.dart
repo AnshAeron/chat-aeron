@@ -1,14 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MessageInput extends StatefulWidget {
   final Future<void> Function(String text) onSend;
-  final VoidCallback? onAttachmentPressed;
 
-  const MessageInput({
-    super.key,
-    required this.onSend,
-    this.onAttachmentPressed,
-  });
+  /// NEW: media callback
+  final Future<void> Function(File file)? onMediaSelected;
+
+  const MessageInput({super.key, required this.onSend, this.onMediaSelected});
 
   @override
   State<MessageInput> createState() => _MessageInputState();
@@ -16,8 +16,8 @@ class MessageInput extends StatefulWidget {
 
 class _MessageInputState extends State<MessageInput> {
   final TextEditingController _controller = TextEditingController();
-
   final FocusNode _focusNode = FocusNode();
+  final ImagePicker _picker = ImagePicker();
 
   bool _canSend = false;
   bool _sending = false;
@@ -49,26 +49,32 @@ class _MessageInputState extends State<MessageInput> {
 
     if (text.isEmpty || _sending) return;
 
-    setState(() {
-      _sending = true;
-    });
+    setState(() => _sending = true);
 
     try {
       await widget.onSend(text);
 
       _controller.clear();
 
-      if (mounted) {
-        setState(() {
-          _canSend = false;
-        });
-      }
+      setState(() {
+        _canSend = false;
+      });
     } finally {
       if (mounted) {
-        setState(() {
-          _sending = false;
-        });
+        setState(() => _sending = false);
       }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (picked == null) return;
+
+    final file = File(picked.path);
+
+    if (widget.onMediaSelected != null) {
+      await widget.onMediaSelected!(file);
     }
   }
 
@@ -81,10 +87,7 @@ class _MessageInputState extends State<MessageInput> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            IconButton(
-              onPressed: widget.onAttachmentPressed,
-              icon: const Icon(Icons.attach_file),
-            ),
+            IconButton(icon: const Icon(Icons.image), onPressed: _pickImage),
 
             Expanded(
               child: TextField(
@@ -103,9 +106,7 @@ class _MessageInputState extends State<MessageInput> {
                     vertical: 12,
                   ),
                 ),
-                onSubmitted: (_) {
-                  _send();
-                },
+                onSubmitted: (_) => _send(),
               ),
             ),
 

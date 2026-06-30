@@ -1,75 +1,42 @@
-import 'package:chat_aeron/routes/app_routes.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../providers/splash_controller.dart';
-
-/// ------------------------------------------------------------
-/// Splash Page
-/// ------------------------------------------------------------
-///
-/// Responsibilities:
-/// - Display ChatAeron branding.
-/// - Trigger app initialization.
-/// - Navigate to Home or Login based on auth status.
-/// ------------------------------------------------------------
-class SplashPage extends ConsumerStatefulWidget {
+class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
   @override
-  ConsumerState<SplashPage> createState() => _SplashPageState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> {
+class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    _checkAuth();
+  }
 
-    // Run after the first frame is rendered.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final isAuthenticated = await ref
-          .read(splashControllerProvider.notifier)
-          .initializeApp();
-      if (!mounted) return;
-      if (isAuthenticated) {
-        context.go(AppRoutes.home);
-      } else {
-        context.go(AppRoutes.login);
-      }
-    });
+  Future<void> _checkAuth() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (!mounted) return;
+
+    if (user != null) {
+      context.go('/home');
+    } else {
+      context.go('/login');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.chat_bubble_rounded,
-                  size: 90,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'ChatAeron',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Fast. Secure. Smart Conversations.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 40),
-                const CircularProgressIndicator(),
-              ],
-            ),
-          ),
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          "ChatAeron",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
     );
